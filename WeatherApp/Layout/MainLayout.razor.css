@@ -1,0 +1,42 @@
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+    min-width: 0;
+}
+
+.skip-link {
+    background: #ffffff;
+    border: 3px solid #0b1220;
+    color: #0b1220;
+    font-weight: 800;
+    left: 1rem;
+    padding: 0.75rem 1rem;
+    position: fixed;
+    top: 1rem;
+    transform: translateY(-160%);
+    z-index: 10000;
+}
+
+.skip-link:focus {
+    transform: translateY(0);
+}
+
+@media (min-width: 641px) {
+    article {
+        padding-left: 2.5rem !important;
+        padding-right: 2.5rem !important;
+    }
+}
+
+@media (max-width: 640.98px) {
+    article {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+}

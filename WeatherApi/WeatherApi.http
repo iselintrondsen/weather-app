@@ -1,0 +1,11 @@
+@WeatherApi_HostAddress = http://localhost:5078
+
+GET {{WeatherApi_HostAddress}}/api/locations/search?query=Oslo
+Accept: application/json
+
+###
+
+GET {{WeatherApi_HostAddress}}/api/weather?name=Oslo&lat=59.9139&lon=10.7522
+Accept: application/json
+
+###

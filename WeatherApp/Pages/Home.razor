@@ -1,0 +1,557 @@
+﻿@page "/"
+@implements IDisposable
+@using WeatherShared.Models
+@using WeatherApp.Services
+@inject WeatherApiClient WeatherApiClient
+
+<PageTitle>Vær</PageTitle>
+
+<section class="weather-shell">
+    <div class="weather-header">
+        <div>
+            <p class="eyebrow">Data fra Meteorologisk institutt</p>
+            <h1>Værvarsel</h1>
+        </div>
+
+        <form class="location-search" @onsubmit="SearchLocationsAsync" @onsubmit:preventDefault>
+            <label for="location-query">Søk etter sted</label>
+            <div class="search-row">
+                <input id="location-query"
+                       class="form-control"
+                       type="search"
+                       placeholder="Skriv for eksempel Oslo"
+                       aria-describedby="location-help"
+                       @bind="locationQuery"
+                       @bind:event="oninput" />
+                <button class="btn btn-primary" type="button" @onclick="SearchLocationsAsync" disabled="@isSearching">
+                    Søk
+                </button>
+            </div>
+            <small id="location-help">Søket finner norske steder og henter værvarsel for valgt treff.</small>
+        </form>
+    </div>
+
+    @if (isSearching)
+    {
+        <div class="loading-panel compact" role="status" aria-live="polite">Søker etter steder...</div>
+    }
+    else if (alternativeResults.Count > 0)
+    {
+        <div class="search-results" aria-label="Søkeresultater">
+            <p>Andre mulige treff</p>
+            @foreach (var location in alternativeResults)
+            {
+                <button class="location-result" type="button" @onclick="() => SelectLocationAsync(location)">
+                    <span>@location.Name</span>
+                </button>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger status-panel" role="alert">@errorMessage</div>
+    }
+    else if (isLoading)
+    {
+        <div class="loading-panel" role="status" aria-live="polite">Henter værdata...</div>
+    }
+    else if (forecast is not null)
+    {
+        var current = forecast.Forecasts.FirstOrDefault();
+
+        <div class="current-weather">
+            <div>
+                <p class="eyebrow">@forecast.LocationName</p>
+                <p class="temperature">@FormatTemperature(current?.TemperatureC)</p>
+                <p class="summary">@current?.Summary</p>
+            </div>
+            <dl aria-label="Nåværende værdetaljer">
+                <div>
+                    <dt>Vind</dt>
+                    <dd>@FormatWind(current?.WindSpeedMetersPerSecond)</dd>
+                </div>
+                <div>
+                    <dt>Nedbør neste time</dt>
+                    <dd>@FormatPrecipitation(current?.PrecipitationMillimeters)</dd>
+                </div>
+                <div>
+                    <dt>Datakilde</dt>
+                    <dd>@forecast.Provider</dd>
+                </div>
+                <div>
+                    <dt>Oppdatert</dt>
+                    <dd>@forecast.UpdatedAt.ToLocalTime().ToString("HH:mm")</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="view-toggle" role="tablist" aria-label="Velg varselvisning">
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(selectedView == ForecastView.Hourly)"
+                    class="@GetViewButtonClass(ForecastView.Hourly)"
+                    @onclick="() => selectedView = ForecastView.Hourly">
+                Time for time
+            </button>
+            <button type="button"
+                    role="tab"
+                    aria-selected="@(selectedView == ForecastView.Daily)"
+                    class="@GetViewButtonClass(ForecastView.Daily)"
+                    @onclick="() => selectedView = ForecastView.Daily">
+                7 dager
+            </button>
+        </div>
+
+        @if (selectedView == ForecastView.Hourly)
+        {
+            <section class="temperature-chart" aria-label="Temperaturgraf for de neste 12 timene">
+                <div class="chart-header">
+                    <h2>Temperatur time for time</h2>
+                    <span>Neste 12 timer</span>
+                </div>
+                <svg viewBox="0 0 720 260" role="img" aria-labelledby="chart-title chart-description" preserveAspectRatio="none">
+                    <title id="chart-title">Temperaturgraf</title>
+                    <desc id="chart-description">Grafen viser temperaturutviklingen time for time for valgt sted.</desc>
+
+                    @foreach (var gridLine in TemperatureChart.GridLines)
+                    {
+                        <line class="chart-grid-line" x1="48" x2="690" y1="@gridLine.Y" y2="@gridLine.Y" />
+                        @((MarkupString)$"<text class=\"chart-axis-label\" x=\"12\" y=\"{gridLine.Y + 5:0.#}\">{gridLine.Label}</text>")
+                    }
+
+                    <path class="chart-line" d="@TemperatureChart.Path" />
+
+                    @foreach (var point in TemperatureChart.PointItems)
+                    {
+                        <circle class="chart-point" cx="@point.X" cy="@point.Y" r="5">
+                            <title>@point.Label</title>
+                        </circle>
+                    }
+
+                    @foreach (var label in TemperatureChart.TimeLabels)
+                    {
+                        @((MarkupString)$"<text class=\"chart-time-label\" x=\"{label.X:0.#}\" y=\"246\">{label.Label}</text>")
+                    }
+                </svg>
+            </section>
+
+            <div class="forecast-list" aria-label="Timevarsel">
+                @foreach (var item in forecast.Forecasts.Take(24))
+                {
+                    <article class="forecast-row">
+                        <div class="forecast-time">
+                            <time datetime="@item.Time.ToString("O")">@item.Time.ToLocalTime().ToString("dddd HH:mm")</time>
+                        </div>
+                        <span class="weather-symbol" aria-hidden="true">@((MarkupString)GetWeatherIcon(item.SymbolCode))</span>
+                        <div class="forecast-summary">
+                            <strong>@item.Summary</strong>
+                            <small>Nedbør: @FormatPrecipitation(item.PrecipitationMillimeters)</small>
+                        </div>
+                        <div class="forecast-value">
+                            @FormatTemperature(item.TemperatureC)
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="daily-list" aria-label="7-dagersvarsel">
+                @foreach (var day in DailyForecasts)
+                {
+                    <article class="daily-row">
+                        <div class="forecast-time">
+                            <time datetime="@day.Date.ToString("O")">@day.Date.ToString("dddd d. MMM")</time>
+                        </div>
+                        <span class="weather-symbol" aria-hidden="true">@((MarkupString)GetWeatherIcon(day.SymbolCode))</span>
+                        <div class="forecast-summary">
+                            <strong>@day.Summary</strong>
+                            <small>Nedbør: @FormatPrecipitation(day.PrecipitationMillimeters)</small>
+                        </div>
+                        <dl class="temperature-range">
+                            <div>
+                                <dt>Høyeste</dt>
+                                <dd>@FormatTemperature(day.MaxTemperatureC)</dd>
+                            </div>
+                            <div>
+                                <dt>Laveste</dt>
+                                <dd>@FormatTemperature(day.MinTemperatureC)</dd>
+                            </div>
+                        </dl>
+                    </article>
+                }
+            </div>
+        }
+    }
+</section>
+
+@code {
+    private const int ForecastPeriodCount = 84;
+    private readonly CancellationTokenSource cancellationTokenSource = new();
+    private IReadOnlyList<LocationOption> alternativeResults = [];
+    private WeatherForecastResponse? forecast;
+    private string locationQuery = "Oslo";
+    private string? errorMessage;
+    private bool isLoading = true;
+    private bool isSearching;
+    private ForecastView selectedView = ForecastView.Hourly;
+
+    protected override void OnInitialized()
+    {
+        isLoading = true;
+        _ = LoadInitialForecastAsync();
+    }
+
+    private async Task LoadInitialForecastAsync()
+    {
+        try
+        {
+            // Appen bruker lokal tjeneste for stedsøk, slik at UI-et ikke bindes til valgt søkeleverandør.
+            await SearchLocationsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Kunne ikke hente værdata. Sjekk at API-et kjører lokalt. Detaljer: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SearchLocationsAsync()
+    {
+        if (locationQuery.Trim().Length < 2)
+        {
+            alternativeResults = [];
+            return;
+        }
+
+        isSearching = true;
+        errorMessage = null;
+
+        try
+        {
+            var results = await WeatherApiClient.SearchLocationsAsync(locationQuery, cancellationTokenSource.Token);
+
+            if (results.FirstOrDefault() is not { } bestMatch)
+            {
+                alternativeResults = [];
+                forecast = null;
+                errorMessage = $"Fant ingen norske steder for \"{locationQuery}\".";
+                return;
+            }
+
+            alternativeResults = results.Skip(1).ToArray();
+            await SelectLocationAsync(bestMatch, clearAlternatives: false);
+        }
+        catch (Exception ex)
+        {
+            alternativeResults = [];
+            errorMessage = $"Kunne ikke søke etter steder. Detaljer: {ex.Message}";
+        }
+        finally
+        {
+            isSearching = false;
+        }
+    }
+
+    private async Task SelectLocationAsync(LocationOption location, bool clearAlternatives = true)
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            // Varselhentingen avbrytes hvis komponenten fjernes før forespørselen er ferdig.
+            forecast = await WeatherApiClient.GetWeatherAsync(location, ForecastPeriodCount, cancellationTokenSource.Token);
+            locationQuery = location.Name;
+            if (clearAlternatives)
+            {
+                alternativeResults = [];
+            }
+        }
+        catch (Exception ex)
+        {
+            forecast = null;
+            errorMessage = $"Kunne ikke hente værdata for {location.Name}. Detaljer: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string FormatTemperature(double? value) =>
+        value is null ? "-" : $"{value:0.#} °C";
+
+    private static string FormatWind(double? value) =>
+        value is null ? "-" : $"{value:0.#} m/s";
+
+    private static string FormatPrecipitation(double? value) =>
+        value is null ? "-" : $"{value:0.#} mm";
+
+    private IReadOnlyList<DailyForecast> DailyForecasts =>
+        forecast?.Forecasts
+            .GroupBy(item => item.Time.ToLocalTime().Date)
+            .Take(7)
+            .Select(group =>
+            {
+                var periods = group.ToArray();
+                var summary = periods
+                    .GroupBy(item => item.Summary)
+                    .OrderByDescending(item => item.Count())
+                    .FirstOrDefault()?.Key ?? "Ukjent værtype";
+
+                return new DailyForecast(
+                    DateOnly.FromDateTime(group.Key),
+                    periods.Where(item => item.TemperatureC is not null).Min(item => item.TemperatureC),
+                    periods.Where(item => item.TemperatureC is not null).Max(item => item.TemperatureC),
+                    periods.Sum(item => item.PrecipitationMillimeters ?? 0),
+                    summary,
+                    periods
+                        .GroupBy(item => item.SymbolCode)
+                        .OrderByDescending(item => item.Count())
+                        .FirstOrDefault()?.Key);
+            })
+            .ToArray() ?? [];
+
+    private TemperatureChartData TemperatureChart
+    {
+        get
+        {
+            var now = DateTimeOffset.Now;
+            var end = now.AddHours(12);
+
+            return BuildTemperatureChart(
+                forecast?.Forecasts
+                    .Where(period => period.Time >= now && period.Time <= end)
+                    .ToArray() ?? []);
+        }
+    }
+
+    private string GetViewButtonClass(ForecastView view) =>
+        selectedView == view ? "active" : string.Empty;
+
+    private static string GetWeatherIcon(string? symbolCode)
+    {
+        var normalizedCode = symbolCode?.Split('_', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+
+        if (normalizedCode.Contains("thunder", StringComparison.OrdinalIgnoreCase))
+        {
+            return ThunderIcon;
+        }
+
+        if (normalizedCode.Contains("rain", StringComparison.OrdinalIgnoreCase) ||
+            normalizedCode.Contains("sleet", StringComparison.OrdinalIgnoreCase))
+        {
+            return RainIcon;
+        }
+
+        if (normalizedCode.Contains("snow", StringComparison.OrdinalIgnoreCase))
+        {
+            return CloudIcon;
+        }
+
+        if (normalizedCode.Contains("partlycloudy", StringComparison.OrdinalIgnoreCase) ||
+            normalizedCode.Contains("fair", StringComparison.OrdinalIgnoreCase))
+        {
+            return SunCloudIcon;
+        }
+
+        if (normalizedCode.Contains("cloud", StringComparison.OrdinalIgnoreCase) ||
+            normalizedCode.Contains("fog", StringComparison.OrdinalIgnoreCase))
+        {
+            return CloudIcon;
+        }
+
+        return SunIcon;
+    }
+
+    private const string SunIcon = """
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="12" fill="#FDB813"/>
+          <g stroke="#FDB813" stroke-width="4" stroke-linecap="round">
+            <path d="M32 6v8"/>
+            <path d="M32 50v8"/>
+            <path d="M6 32h8"/>
+            <path d="M50 32h8"/>
+            <path d="M13.6 13.6l5.6 5.6"/>
+            <path d="M44.8 44.8l5.6 5.6"/>
+            <path d="M50.4 13.6l-5.6 5.6"/>
+            <path d="M19.2 44.8l-5.6 5.6"/>
+          </g>
+        </svg>
+        """;
+
+    private const string CloudIcon = """
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <path d="M22 46h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 16 31a8 8 0 0 0 6 15Z"
+                fill="#B8C7D9"/>
+        </svg>
+        """;
+
+    private const string RainIcon = """
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <path d="M22 34h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 16 19a8 8 0 0 0 6 15Z"
+                fill="#B8C7D9"/>
+          <g stroke="#3BA7FF" stroke-width="4" stroke-linecap="round">
+            <path d="M22 44l-4 8"/>
+            <path d="M34 44l-4 8"/>
+            <path d="M46 44l-4 8"/>
+          </g>
+        </svg>
+        """;
+
+    private const string ThunderIcon = """
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <path d="M22 34h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 16 19a8 8 0 0 0 6 15Z"
+                fill="#8FA1B5"/>
+          <path d="M34 34l-8 14h8l-4 12 14-18h-9l5-8h-6Z"
+                fill="#FFD43B"/>
+        </svg>
+        """;
+
+    private const string SunCloudIcon = """
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="24" cy="24" r="10" fill="#FDB813"/>
+          <g stroke="#FDB813" stroke-width="3" stroke-linecap="round">
+            <path d="M24 6v6"/>
+            <path d="M24 36v6"/>
+            <path d="M6 24h6"/>
+            <path d="M36 24h6"/>
+            <path d="M11.3 11.3l4.2 4.2"/>
+          </g>
+          <path d="M24 48h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 18 33a8 8 0 0 0 6 15Z"
+                fill="#B8C7D9"/>
+        </svg>
+        """;
+
+    private static TemperatureChartData BuildTemperatureChart(IReadOnlyList<WeatherForecastPeriod> periods)
+    {
+        var values = periods
+            .Where(period => period.TemperatureC is not null)
+            .OrderBy(period => period.Time)
+            .Select(period => new
+            {
+                period.Time,
+                Temperature = period.TemperatureC!.Value
+            })
+            .Take(12)
+            .ToArray();
+
+        if (values.Length == 0)
+        {
+            return new TemperatureChartData(string.Empty, [], [], []);
+        }
+
+        const double left = 48;
+        const double right = 690;
+        const double top = 24;
+        const double bottom = 214;
+        var min = Math.Floor(values.Min(item => item.Temperature));
+        var max = Math.Ceiling(values.Max(item => item.Temperature));
+        var range = Math.Max(1, max - min);
+
+        var points = values.Select((item, index) =>
+        {
+            var x = values.Length == 1
+                ? (left + right) / 2
+                : left + (right - left) * index / (values.Length - 1);
+            var y = bottom - (item.Temperature - min) / range * (bottom - top);
+
+            return new TemperatureChartPoint(
+                x,
+                y,
+                $"{item.Time.ToLocalTime():dddd HH:mm}: {item.Temperature:0.#} °C");
+        }).ToArray();
+
+        var gridLines = Enumerable.Range(0, 4)
+            .Select(index =>
+            {
+                var value = min + range * index / 3;
+                var y = bottom - (value - min) / range * (bottom - top);
+                return new TemperatureChartGridLine(y, $"{value:0.#} °C");
+            })
+            .Reverse()
+            .ToArray();
+
+        var timeLabels = values
+            .Select((item, index) => new { item.Time, index })
+            .Where(item => item.index == 0 || item.index == values.Length - 1 || item.index % 6 == 0)
+            .Select(item =>
+            {
+                var x = values.Length == 1
+                    ? (left + right) / 2
+                    : left + (right - left) * item.index / (values.Length - 1);
+                return new TemperatureChartTimeLabel(x, item.Time.ToLocalTime().ToString("HH:mm"));
+            })
+            .ToArray();
+
+        return new TemperatureChartData(
+            BuildSmoothPath(points),
+            points,
+            gridLines,
+            timeLabels);
+    }
+
+    private static string BuildSmoothPath(IReadOnlyList<TemperatureChartPoint> points)
+    {
+        if (points.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        if (points.Count == 1)
+        {
+            return $"M {points[0].X:0.#} {points[0].Y:0.#}";
+        }
+
+        var path = $"M {points[0].X:0.#} {points[0].Y:0.#}";
+
+        for (var index = 1; index < points.Count; index++)
+        {
+            var previous = points[index - 1];
+            var current = points[index];
+            var controlX = (previous.X + current.X) / 2;
+
+            path += $" C {controlX:0.#} {previous.Y:0.#}, {controlX:0.#} {current.Y:0.#}, {current.X:0.#} {current.Y:0.#}";
+        }
+
+        return path;
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource.Cancel();
+        cancellationTokenSource.Dispose();
+    }
+
+    private enum ForecastView
+    {
+        Hourly,
+        Daily
+    }
+
+    private sealed record DailyForecast(
+        DateOnly Date,
+        double? MinTemperatureC,
+        double? MaxTemperatureC,
+        double PrecipitationMillimeters,
+        string Summary,
+        string? SymbolCode);
+
+    private sealed record TemperatureChartData(
+        string Path,
+        IReadOnlyList<TemperatureChartPoint> PointItems,
+        IReadOnlyList<TemperatureChartGridLine> GridLines,
+        IReadOnlyList<TemperatureChartTimeLabel> TimeLabels);
+
+    private sealed record TemperatureChartPoint(double X, double Y, string Label);
+
+    private sealed record TemperatureChartGridLine(double Y, string Label);
+
+    private sealed record TemperatureChartTimeLabel(double X, string Label);
+}
