@@ -289,7 +289,8 @@ a:focus-visible {
 }
 
 .temperature-chart svg {
-    height: 18rem;
+    display: block;
+    height: auto;
     width: 100%;
 }
 
@@ -303,6 +304,11 @@ a:focus-visible {
     fill: var(--muted);
     font-size: 0.8rem;
     font-weight: 700;
+}
+
+/* Sentrer tidsetikettene under punktene sine, slik at den siste ikke faller utenfor høyre kant. */
+.chart-time-label {
+    text-anchor: middle;
 }
 
 .chart-line {

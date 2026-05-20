@@ -25,15 +25,19 @@ public sealed class YrWeatherProvider(HttpClient httpClient) : IWeatherProvider
             .Take(maxPeriods)
             .Select(item =>
             {
-                // Meteorologisk institutt oppgir øyeblikksverdier separat fra nedbør og værsymbol for neste time.
+                // Meteorologisk institutt oppgir øyeblikksverdier separat fra nedbør og værsymbol.
+                // De første ~60 timene har timesoppløsning (next_1_hours); etter det går
+                // varselet over til 6-timersteg, der bare next_6_hours finnes. Vi faller derfor
+                // tilbake til next_6_hours slik at nedbør og symbol også er riktige for dag 3–10.
                 var details = item.Data.Instant.Details;
+                var symbolCode = item.Data.Next1Hours?.Summary.SymbolCode ?? item.Data.Next6Hours?.Summary.SymbolCode;
                 return new WeatherForecastPeriod(
                     item.Time,
                     details.AirTemperature,
                     details.WindSpeed,
-                    item.Data.Next1Hours?.Details.PrecipitationAmount,
-                    item.Data.Next1Hours?.Summary.SymbolCode ?? item.Data.Next6Hours?.Summary.SymbolCode,
-                    ToNorwegianSummary(item.Data.Next1Hours?.Summary.SymbolCode ?? item.Data.Next6Hours?.Summary.SymbolCode));
+                    item.Data.Next1Hours?.Details.PrecipitationAmount ?? item.Data.Next6Hours?.Details.PrecipitationAmount,
+                    symbolCode,
+                    ToNorwegianSummary(symbolCode));
             })
             .ToArray();
 

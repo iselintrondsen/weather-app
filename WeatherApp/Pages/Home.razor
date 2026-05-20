@@ -1,5 +1,6 @@
 ﻿@page "/"
 @implements IDisposable
+@using System.Globalization
 @using WeatherShared.Models
 @using WeatherApp.Services
 @inject WeatherApiClient WeatherApiClient
@@ -110,50 +111,31 @@
                     <h2>Temperatur time for time</h2>
                     <span>Neste 12 timer</span>
                 </div>
-                <svg viewBox="0 0 720 260" role="img" aria-labelledby="chart-title chart-description" preserveAspectRatio="none">
+                <svg viewBox="0 0 720 260" role="img" aria-labelledby="chart-title chart-description">
                     <title id="chart-title">Temperaturgraf</title>
                     <desc id="chart-description">Grafen viser temperaturutviklingen time for time for valgt sted.</desc>
 
                     @foreach (var gridLine in TemperatureChart.GridLines)
                     {
-                        <line class="chart-grid-line" x1="48" x2="690" y1="@gridLine.Y" y2="@gridLine.Y" />
-                        @((MarkupString)$"<text class=\"chart-axis-label\" x=\"12\" y=\"{gridLine.Y + 5:0.#}\">{gridLine.Label}</text>")
+                        <line class="chart-grid-line" x1="48" x2="690" y1="@Svg(gridLine.Y)" y2="@Svg(gridLine.Y)" />
+                        @((MarkupString)$"<text class=\"chart-axis-label\" x=\"12\" y=\"{Svg(gridLine.Y + 5)}\">{gridLine.Label}</text>")
                     }
 
                     <path class="chart-line" d="@TemperatureChart.Path" />
 
                     @foreach (var point in TemperatureChart.PointItems)
                     {
-                        <circle class="chart-point" cx="@point.X" cy="@point.Y" r="5">
+                        <circle class="chart-point" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="5">
                             <title>@point.Label</title>
                         </circle>
                     }
 
                     @foreach (var label in TemperatureChart.TimeLabels)
                     {
-                        @((MarkupString)$"<text class=\"chart-time-label\" x=\"{label.X:0.#}\" y=\"246\">{label.Label}</text>")
+                        @((MarkupString)$"<text class=\"chart-time-label\" x=\"{Svg(label.X)}\" y=\"246\">{label.Label}</text>")
                     }
                 </svg>
             </section>
-
-            <div class="forecast-list" aria-label="Timevarsel">
-                @foreach (var item in forecast.Forecasts.Take(24))
-                {
-                    <article class="forecast-row">
-                        <div class="forecast-time">
-                            <time datetime="@item.Time.ToString("O")">@item.Time.ToLocalTime().ToString("dddd HH:mm")</time>
-                        </div>
-                        <span class="weather-symbol" aria-hidden="true">@((MarkupString)GetWeatherIcon(item.SymbolCode))</span>
-                        <div class="forecast-summary">
-                            <strong>@item.Summary</strong>
-                            <small>Nedbør: @FormatPrecipitation(item.PrecipitationMillimeters)</small>
-                        </div>
-                        <div class="forecast-value">
-                            @FormatTemperature(item.TemperatureC)
-                        </div>
-                    </article>
-                }
-            </div>
         }
         else
         {
@@ -506,10 +488,10 @@
 
         if (points.Count == 1)
         {
-            return $"M {points[0].X:0.#} {points[0].Y:0.#}";
+            return $"M {Svg(points[0].X)} {Svg(points[0].Y)}";
         }
 
-        var path = $"M {points[0].X:0.#} {points[0].Y:0.#}";
+        var path = $"M {Svg(points[0].X)} {Svg(points[0].Y)}";
 
         for (var index = 1; index < points.Count; index++)
         {
@@ -517,11 +499,17 @@
             var current = points[index];
             var controlX = (previous.X + current.X) / 2;
 
-            path += $" C {controlX:0.#} {previous.Y:0.#}, {controlX:0.#} {current.Y:0.#}, {current.X:0.#} {current.Y:0.#}";
+            path += $" C {Svg(controlX)} {Svg(previous.Y)}, {Svg(controlX)} {Svg(current.Y)}, {Svg(current.X)} {Svg(current.Y)}";
         }
 
         return path;
     }
+
+    // SVG-koordinater må alltid bruke punktum som desimaltegn, uavhengig av
+    // brukerens kultur. Uten dette gir for eksempel norsk locale komma, som
+    // ødelegger plasseringen av linje, punkter og etiketter.
+    private static string Svg(double value) =>
+        value.ToString("0.#", CultureInfo.InvariantCulture);
 
     public void Dispose()
     {
