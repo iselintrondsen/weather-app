@@ -1,16 +1,17 @@
 # Værvarsel
 
 En liten værvarsel-app for norske steder. Du søker etter et sted, og appen viser
-nåværende vær, en temperaturgraf for de neste timene og varsel både time for time
-og for de neste 7 dagene. Værdataene kommer fra Meteorologisk institutt (Yr), og
-stedsøket går mot OpenStreetMap (Nominatim).
+nåværende vær, en temperaturgraf time for time og et varsel for de neste 7 dagene.
+Værdataene kommer fra Meteorologisk institutt (Yr), og stedsøket går mot
+OpenStreetMap (Nominatim).
 
 ## Funksjoner
 
 - Søk etter norske steder med autofullføring av alternative treff.
 - Nåværende vær: temperatur, vind, nedbør neste time og datakilde.
-- Temperaturgraf (SVG) for de neste 12 timene.
-- To visninger: «time for time» (24 timer) og «7 dager».
+- To visninger du kan veksle mellom:
+  - «Time for time» – temperaturgraf (SVG) for de neste 12 timene.
+  - «7 dager» – daglig varsel med høyeste/laveste temperatur, nedbør og værsymbol.
 - Værsymboler og norske beskrivelser av værtype.
 - Hele grensesnittet er på norsk.
 
