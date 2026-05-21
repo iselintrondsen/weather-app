@@ -2,3 +2,7 @@
 **/obj/
 .dotnet/
 .DS_Store
+
+# Vercel-bygg (genereres av vercel-build.sh)
+publish-output/
+dotnet-install.sh

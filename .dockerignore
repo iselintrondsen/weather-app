@@ -1,0 +1,9 @@
+# Hold byggekonteksten liten og unngå å kopiere lokale byggeartefakter.
+**/bin/
+**/obj/
+**/.vs/
+.git/
+.dotnet/
+WeatherApp/
+node_modules/
+*.user
