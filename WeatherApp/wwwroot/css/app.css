@@ -320,13 +320,13 @@ a:focus-visible {
     stroke: var(--brand-strong);
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-width: 4;
+    stroke-width: 1.8;
 }
 
 .chart-point {
     fill: #ffffff;
     stroke: var(--accent);
-    stroke-width: 3;
+    stroke-width: 1.8;
 }
 
 .forecast-row {

@@ -517,7 +517,7 @@
                 var x = values.Length == 1
                     ? (left + right) / 2
                     : left + (right - left) * item.index / (values.Length - 1);
-                return new TemperatureChartTimeLabel(x, item.Time.ToLocalTime().ToString("HH:mm"));
+                return new TemperatureChartTimeLabel(x, FormatChartTimeLabel(values.Select(value => value.Time).ToArray(), item.index));
             })
             .ToArray();
 
@@ -526,6 +526,27 @@
             points,
             gridLines,
             timeLabels);
+    }
+
+    private static string FormatChartTimeLabel(IReadOnlyList<DateTimeOffset> times, int index)
+    {
+        var currentTime = times[index];
+        var localStart = currentTime.ToLocalTime();
+
+        if (index >= times.Count - 1)
+        {
+            return localStart.ToString("HH");
+        }
+
+        var nextTime = times[index + 1];
+        var hoursUntilNext = (nextTime - currentTime).TotalHours;
+
+        if (hoursUntilNext <= 1.5)
+        {
+            return localStart.ToString("HH");
+        }
+
+        return $"{localStart:HH}-{nextTime.ToLocalTime():HH}";
     }
 
     private static string BuildSmoothPath(IReadOnlyList<TemperatureChartPoint> points)
@@ -577,7 +598,7 @@
         @foreach (var point in chart.PointItems)
         {
             @((MarkupString)GetWeatherIconSvg(point.SymbolCode, point.X, Math.Max(12, point.Y - 20), 20))
-            <circle class="chart-point" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="5">
+            <circle class="chart-point" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="3.4">
                 <title>@point.Label</title>
             </circle>
         }
