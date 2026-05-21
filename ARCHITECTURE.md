@@ -13,9 +13,8 @@ Løsningen består av tre prosjekter:
 | `WeatherApi`      | ASP.NET Core Minimal API    | Mellomledd (proxy) mot eksterne tjenester.                   |
 | `WeatherShared`   | Klassebibliotek (.NET)      | Felles datamodeller som deles av frontend og backend.        |
 
-Frontend snakker aldri direkte med de eksterne tjenestene. All kommunikasjon går via
-`WeatherApi`, som kapsler inn hvilke leverandører som faktisk brukes. Det betyr at en
-annen værleverandør kan kobles på i backend uten at Blazor-appen må endres.
+Frontend snakker med `WeatherApi`, ikke direkte med de eksterne tjenestene. Backend
+kapsler derfor inn både URL-er, datakontrakter og valg av leverandører.
 
 ## Komponent- og dataflyt
 
@@ -114,10 +113,9 @@ samme typene defineres dobbelt i de to prosjektene.
 
 ## Designvalg
 
-**Backend som proxy.** Frontend kaller aldri `api.met.no` eller Nominatim direkte.
-Det gjør at appen ikke er bundet til en bestemt værleverandør, holder eksterne detaljer
-(URL-er, `User-Agent`, oversettelse av symbolkoder) på ett sted, og lar `WeatherApi`
-styre hvilke klienter som slipper til via CORS.
+**Backend som proxy.** `WeatherApi` holder eksterne detaljer som URL-er, `User-Agent`
+og oversettelse av symbolkoder på ett sted, og styrer hvilke lokale klienter som
+slipper til via CORS.
 
 **Grensesnitt for leverandørene.** `IWeatherProvider` og `ILocationSearchProvider`
 gjør at en datakilde kan byttes ut uten å endre frontend-en. Vil man for eksempel

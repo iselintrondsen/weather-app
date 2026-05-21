@@ -10,11 +10,24 @@ mens stedsøket går mot OpenStreetMap (Nominatim).
 
 - Søk etter norske steder med autofullføring av alternative treff.
 - Nåværende vær: temperatur, vind, nedbør neste time og datakilde.
-- To visninger du kan veksle mellom:
-  - «Time for time» – temperaturgraf (SVG) for de neste 12 timene.
-  - «7 dager» – daglig varsel med høyeste/laveste temperatur, nedbør og værsymbol.
+- «Time for time» med SVG-basert temperaturgraf for de neste 12 timene.
+- «7 dager» med daglig varsel, høyeste/laveste temperatur, nedbør og værsymbol.
 - Værsymboler og norske beskrivelser av værtype.
 - Hele grensesnittet er på norsk.
+
+## Skjermbilder
+
+**Forside med time-for-time-graf**
+
+![Forside med søk, nåværende vær og temperaturgraf](docs/screenshots/forside.png)
+
+**7-dagersvisning**
+
+![7-dagersvarsel med daglige rader](docs/screenshots/7-dager.png)
+
+**Utvidet dag**
+
+![Utvidet dag med time-for-time-graf](docs/screenshots/7-dager-utvidet.png)
 
 ## Teknologi
 
@@ -30,12 +43,10 @@ mens stedsøket går mot OpenStreetMap (Nominatim).
 - **Valgt lokasjon:** Brukeren søker etter et sted, og beste treff vises automatisk.
   Alternative treff kan velges manuelt.
 - **Web API:** `WeatherApi` er et ASP.NET Core Minimal API som frontend-en bruker for
-  både stedsøk og værdata.
-- **Yr-værdata:** API-et henter værvarsel fra `api.met.no`, som er Meteorologisk
-  institutt sitt offisielle API for værdataene som brukes av Yr.
-- **Mulig å bytte datakilde:** Værintegrasjonen ligger bak `IWeatherProvider`.
-  Frontend-en kjenner bare til `WeatherApi` og påvirkes ikke dersom backend bytter til
-  en annen værleverandør.
+  både stedsøk og værdata. Værvarselet hentes fra `api.met.no`, Meteorologisk
+  institutt sitt offisielle API for dataene som brukes av Yr.
+- **Mulig å bytte datakilde:** Værintegrasjonen ligger bak `IWeatherProvider`, slik at
+  backend kan få en ny leverandør uten at frontend-en må endres.
 - **Lokal kjøring:** Backend og frontend kjøres lokalt på hver sin port.
 
 ## Forutsetninger
@@ -112,8 +123,7 @@ WeatherSolution.slnx          Løsningsfil (samler de tre prosjektene)
     └── Models/               LocationOption, WeatherForecastResponse
 ```
 
-Se [ARCHITECTURE.md](ARCHITECTURE.md) for en nærmere beskrivelse av dataflyten
-og designvalgene.
+Se [ARCHITECTURE.md](ARCHITECTURE.md) for en nærmere beskrivelse av dataflyten.
 
 ## Datakilder
 
