@@ -66,11 +66,12 @@
                 <p class="eyebrow">@forecast.LocationName</p>
                 <p class="temperature">@FormatTemperature(current?.TemperatureC)</p>
             </div>
-            <span class="current-weather-symbol"
-                  role="img"
-                  aria-label="@(current?.Summary ?? "Ukjent værtype")">
-                @((MarkupString)GetWeatherIcon(current?.SymbolCode))
-            </span>
+            <div class="current-weather-condition">
+                <span class="current-weather-symbol" aria-hidden="true">
+                    @((MarkupString)GetWeatherIcon(current?.SymbolCode))
+                </span>
+                <p class="current-weather-summary">@(current?.Summary ?? "Ukjent værtype")</p>
+            </div>
             <dl aria-label="Nåværende værdetaljer">
                 <div>
                     <dt>Vind</dt>

@@ -93,9 +93,10 @@ a:focus-visible {
 }
 
 .weather-header h1 {
-    font-size: clamp(1.5rem, 3.2vw, 2.5rem);
-    font-weight: 800;
+    font-size: clamp(1.9rem, 3.8vw, 3rem);
+    font-weight: 850;
     letter-spacing: 0;
+    line-height: 0.95;
     margin: 0;
 }
 
@@ -115,7 +116,7 @@ a:focus-visible {
     box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
     display: grid;
     gap: 0.35rem;
-    margin-top: 3rem;
+    margin-top: 0;
     min-width: min(100%, 18rem);
     padding: 0.8rem;
 }
@@ -215,6 +216,15 @@ a:focus-visible {
     margin: 0.2rem 0;
 }
 
+.current-weather-condition {
+    align-content: center;
+    display: grid;
+    gap: 0.65rem;
+    justify-items: center;
+    justify-self: center;
+    text-align: center;
+}
+
 .current-weather-symbol {
     align-items: center;
     background: rgba(255, 255, 255, 0.72);
@@ -229,6 +239,13 @@ a:focus-visible {
 .current-weather-symbol svg {
     height: 72%;
     width: 72%;
+}
+
+.current-weather-summary {
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 800;
+    margin: 0;
 }
 
 .current-weather dl {
@@ -502,15 +519,11 @@ a:focus-visible {
         display: grid;
     }
 
-    .location-search {
-        margin-top: 0.5rem;
-    }
-
     .current-weather {
         grid-template-columns: 1fr;
     }
 
-    .current-weather-symbol {
+    .current-weather-condition {
         justify-self: start;
     }
 
