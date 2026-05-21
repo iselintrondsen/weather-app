@@ -64,6 +64,7 @@ sequenceDiagram
     Api->>OSM: Søk etter norske steder
     OSM-->>Api: Liste med treff (navn + koordinater)
     Api-->>App: LocationOption[]
+    App->>App: Bruker beste treff
     App->>Api: GET /api/weather?name=Oslo&lat=..&lon=..
     Api->>MET: Locationforecast 2.0 (lat/lon)
     MET-->>Api: Værdata (timeserie)
@@ -76,9 +77,9 @@ sequenceDiagram
 ### WeatherApp (frontend)
 
 Blazor WebAssembly-app som kjører i nettleseren. Hovedsiden (`Pages/Home.razor`)
-håndterer stedsøk, valg av sted og visning av varselet. Den bygger blant annet en
-SVG-temperaturgraf for de neste 12 timene og grupperer timesdata til et 7-dagersvarsel
-på klienten.
+håndterer stedsøk, bruker beste treff fra API-et og viser varselet med temperatur,
+koordinater, værsymbol og detaljer. Den bygger blant annet en SVG-temperaturgraf for
+de neste 12 timene og grupperer timesdata til et 7-dagersvarsel på klienten.
 
 All kommunikasjon med backend går gjennom `Services/WeatherApiClient`, som legger på
 en tidsavbrudd-grense på 10 sekunder per kall slik at grensesnittet ikke henger ved
@@ -127,9 +128,10 @@ mapper svaret til de delte modellene i `WeatherShared`, og registrerer den i
 som sendes over nettet er navnebasert, så det samme settet med typer brukes både ved
 serialisering (API) og deserialisering (app).
 
-**CORS-låsing.** API-et godtar kun forespørsler fra de lokale Blazor-adressene
-(`http://localhost:5208` og `https://localhost:7208`). Endrer du portene, må CORS-reglene
-i `Program.cs` oppdateres tilsvarende.
+**CORS-låsing.** API-et bruker de lokale Blazor-adressene
+(`http://localhost:5208` og `https://localhost:7208`) som standard. Ved deploy kan
+tillatte origins settes med `AllowedOrigins`, slik at publisert frontend også kan
+kalle API-et.
 
 ## Porter og konfigurasjon
 
@@ -139,3 +141,6 @@ i `Program.cs` oppdateres tilsvarende.
 | WeatherApp | `http://localhost:5208`, `https://localhost:7208` |
 
 Se [README.md](README.md) for hvordan du starter prosjektene.
+
+Publiseringsoppsettet ligger i [DEPLOY.md](DEPLOY.md), `Dockerfile`, `vercel.json` og
+`vercel-build.sh`.

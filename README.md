@@ -8,8 +8,8 @@ mens stedsøket går mot OpenStreetMap (Nominatim).
 
 ## Funksjoner
 
-- Søk etter norske steder med autofullføring av alternative treff.
-- Nåværende vær: temperatur, vind, nedbør neste time og datakilde.
+- Søk etter norske steder og hent værvarsel for beste treff.
+- Nåværende vær: temperatur, koordinater, værsymbol, vind, nedbør neste time og datakilde.
 - «Time for time» med SVG-basert temperaturgraf for de neste 12 timene.
 - «7 dager» med daglig varsel, høyeste/laveste temperatur, nedbør og værsymbol.
 - Værsymboler og norske beskrivelser av værtype.
@@ -40,8 +40,8 @@ mens stedsøket går mot OpenStreetMap (Nominatim).
 
 - **Single-page webapplikasjon:** `WeatherApp` er en Blazor WebAssembly-app med én
   hovedside for søk og værvisning.
-- **Valgt lokasjon:** Brukeren søker etter et sted, og beste treff vises automatisk.
-  Alternative treff kan velges manuelt.
+- **Valgt lokasjon:** Brukeren søker etter et sted, og appen henter vær for beste
+  treff automatisk.
 - **Web API:** `WeatherApi` er et ASP.NET Core Minimal API som frontend-en bruker for
   både stedsøk og værdata. Værvarselet hentes fra `api.met.no`, Meteorologisk
   institutt sitt offisielle API for dataene som brukes av Yr.
@@ -78,8 +78,8 @@ Appen lytter på `http://localhost:5208` (og `https://localhost:7208`).
 
 **3. Åpne appen** i nettleseren på <http://localhost:5208>.
 
-> **Merk:** Frontend-en må kjøre på port 5208/7208. API-et tillater kun forespørsler
-> fra disse adressene via CORS, så andre porter blir avvist.
+> **Merk:** Med standard lokal konfigurasjon må frontend-en kjøre på port 5208/7208.
+> Andre adresser må legges til via `AllowedOrigins`.
 
 ## Konfigurasjon
 
@@ -91,8 +91,11 @@ Adressen til API-et settes i `WeatherApp/wwwroot/appsettings.json`:
 }
 ```
 
-Endrer du porten API-et kjører på, må du oppdatere både denne verdien og
-CORS-reglene i `WeatherApi/Program.cs`.
+Endrer du porten API-et kjører på, må du oppdatere denne verdien. Endrer du hvor
+frontend-en kjører, må den nye adressen legges til i `AllowedOrigins`.
+
+For publisert frontend brukes `WeatherApp/wwwroot/appsettings.Production.json`.
+Se [DEPLOY.md](DEPLOY.md) for deploy-oppsett med Vercel og en .NET-hostet API-tjeneste.
 
 ## API-endepunkter
 
@@ -107,6 +110,10 @@ Eksempelforespørsler ligger i [`WeatherApi/WeatherApi.http`](WeatherApi/Weather
 
 ```text
 WeatherSolution.slnx          Løsningsfil (samler de tre prosjektene)
+DEPLOY.md                     Publiseringsguide for frontend og API
+Dockerfile                    Container-oppsett for WeatherApi
+vercel.json                   Vercel-oppsett for WeatherApp
+vercel-build.sh               Byggeskript for Blazor WebAssembly på Vercel
 │
 ├── WeatherApi/               Backend – ASP.NET Core Minimal API
 │   ├── Endpoints/            Definisjon av HTTP-endepunktene
