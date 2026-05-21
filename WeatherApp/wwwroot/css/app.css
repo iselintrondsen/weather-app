@@ -4,11 +4,19 @@ html, body {
         radial-gradient(circle at top left, rgba(20, 184, 166, 0.16), transparent 28rem),
         linear-gradient(135deg, #f7fbff 0%, #eef4f8 48%, #f8fafc 100%);
     color: #111827;
+    margin: 0;
+    min-height: 100%;
 }
 
 html {
     /* Skalerer ned hele grensesnittet litt – alle rem-baserte størrelser krymper. */
     font-size: 90%;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
 
 :root {
@@ -26,13 +34,29 @@ html {
     --shadow: 0 18px 55px rgba(15, 23, 42, 0.12);
 }
 
-a, .btn-link {
+a {
     color: #0f5fbd;
 }
 
-/* Blazor focuses the page title after navigation; hide the non-interactive focus frame. */
+/* Blazor fokuserer sidetittelen etter navigering; skjul rammen på dette ikke-interaktive fokuset. */
 h1:focus {
     outline: none;
+}
+
+.btn {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: inherit;
+    padding: 0.55rem 1rem;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
 }
 
 .btn-primary {
@@ -42,11 +66,7 @@ h1:focus {
 }
 
 .btn:focus-visible,
-.btn:active:focus-visible,
-.btn-link.nav-link:focus-visible,
 .form-control:focus-visible,
-.form-select:focus-visible,
-.form-check-input:focus-visible,
 a:focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 3px;
@@ -117,12 +137,15 @@ a:focus-visible {
     grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.form-control,
-.form-select {
+.form-control {
+    background: #ffffff;
     border: 2px solid #94a3b8;
     border-radius: 8px;
     color: var(--text);
+    font: inherit;
     min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    width: 100%;
 }
 
 .search-row .btn {
@@ -180,8 +203,8 @@ a:focus-visible {
     border-radius: 8px;
     box-shadow: var(--shadow);
     display: grid;
-    gap: 1.25rem;
-    grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr);
+    gap: clamp(1rem, 4vw, 3rem);
+    grid-template-columns: minmax(0, 1fr) auto minmax(18rem, 0.9fr);
     padding: clamp(1.25rem, 3vw, 2rem);
 }
 
@@ -192,12 +215,20 @@ a:focus-visible {
     margin: 0.2rem 0;
 }
 
-.summary {
-    color: var(--muted);
-    font-size: 1.15rem;
-    font-weight: 650;
-    margin: 0;
-    text-transform: capitalize;
+.current-weather-symbol {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    height: clamp(5rem, 10vw, 7rem);
+    justify-content: center;
+    width: clamp(5rem, 10vw, 7rem);
+}
+
+.current-weather-symbol svg {
+    height: 72%;
+    width: 72%;
 }
 
 .current-weather dl {
@@ -335,19 +366,6 @@ a:focus-visible {
     stroke-width: 1.8;
 }
 
-.forecast-row {
-    align-items: center;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: minmax(9rem, 0.9fr) 3rem minmax(0, 1.3fr) minmax(8rem, auto);
-    min-height: 4.75rem;
-    padding: 0.85rem 1rem;
-}
-
 /* Dagskortet er nå en beholder: en klikkbar header + et utfellbart grafpanel. */
 .daily-row {
     background: var(--surface);
@@ -430,12 +448,6 @@ a:focus-visible {
     font-weight: 650;
 }
 
-.forecast-value {
-    font-size: 1.25rem;
-    font-weight: 850;
-    text-align: right;
-}
-
 .temperature-range {
     display: grid;
     gap: 0.35rem;
@@ -498,6 +510,10 @@ a:focus-visible {
         grid-template-columns: 1fr;
     }
 
+    .current-weather-symbol {
+        justify-self: start;
+    }
+
     .search-row {
         grid-template-columns: 1fr;
     }
@@ -505,10 +521,6 @@ a:focus-visible {
     .chart-header {
         display: grid;
         gap: 0.15rem;
-    }
-
-    .forecast-row {
-        grid-template-columns: 3rem minmax(0, 1fr);
     }
 
     .daily-row-header {
@@ -541,26 +553,6 @@ a:focus-visible {
         justify-self: end;
     }
 
-    .forecast-row .forecast-time,
-    .forecast-row .forecast-value {
-        grid-column: 1 / -1;
-    }
-
-    .forecast-value {
-        text-align: left;
-    }
-}
-
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
-
-.invalid {
-    outline: 1px solid red;
-}
-
-.validation-message {
-    color: red;
 }
 
 #blazor-error-ui {
@@ -630,13 +622,4 @@ a:focus-visible {
 
 code {
     color: #c02d76;
-}
-
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
 }

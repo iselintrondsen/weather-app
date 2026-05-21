@@ -51,7 +51,7 @@
 
     @if (!string.IsNullOrWhiteSpace(errorMessage))
     {
-        <div class="alert alert-danger status-panel" role="alert">@errorMessage</div>
+        <div class="status-panel" role="alert">@errorMessage</div>
     }
     else if (isLoading)
     {
@@ -65,8 +65,12 @@
             <div>
                 <p class="eyebrow">@forecast.LocationName</p>
                 <p class="temperature">@FormatTemperature(current?.TemperatureC)</p>
-                <p class="summary">@current?.Summary</p>
             </div>
+            <span class="current-weather-symbol"
+                  role="img"
+                  aria-label="@(current?.Summary ?? "Ukjent værtype")">
+                @((MarkupString)GetWeatherIcon(current?.SymbolCode))
+            </span>
             <dl aria-label="Nåværende værdetaljer">
                 <div>
                     <dt>Vind</dt>

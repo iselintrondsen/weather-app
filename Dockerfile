@@ -1,4 +1,4 @@
-# Dockerfile for WeatherApi (backend).
+# Dockerfile til WeatherApi-backend.
 # Bygger og kjører ASP.NET Core Minimal API-et. Fungerer på Render, Fly.io,
 # Azure Container Apps og andre Docker-baserte .NET-verter.
 #

@@ -5,9 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 const string CorsPolicy = "BlazorClient";
 
-// Tillatte CORS-origins leses fra konfigurasjon (miljøvariabelen AllowedOrigins,
-// komma- eller semikolon-separert). I produksjon settes Vercel-domenet her.
-// Faller tilbake til de lokale utviklingsadressene når variabelen ikke er satt.
+// Tillatte CORS-adresser kan overstyres med AllowedOrigins, for eksempel i deploy.
+// Uten konfigurasjon brukes de lokale Blazor-adressene.
 var allowedOrigins = (builder.Configuration["AllowedOrigins"]
         ?? "http://localhost:5208;https://localhost:7208")
     .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -22,9 +21,8 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Met.no og Nominatim krever en identifiserbar User-Agent. I produksjon bør denne
-// settes til en ekte kontaktadresse via miljøvariabelen UserAgent, slik tjenestenes
-// vilkår krever.
+// Meteorologisk institutt og Nominatim krever en identifiserbar User-Agent.
+// I deploy-miljø bør verdien overstyres med UserAgent og en ekte kontaktadresse.
 var userAgent = builder.Configuration["UserAgent"]
     ?? "WeatherAppDemo/1.0 (https://github.com/local-demo)";
 

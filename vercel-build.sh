@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build-script for Vercel. Vercels build-miljø har ikke .NET forhåndsinstallert,
+# Byggeskript for Vercel. Vercels build-miljø har ikke .NET forhåndsinstallert,
 # så vi installerer SDK-en og publiserer Blazor WebAssembly-frontend-en til
 # statiske filer. Vercel serverer deretter mappen som er satt i vercel.json
 # (publish-output/wwwroot).
