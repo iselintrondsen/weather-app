@@ -90,14 +90,14 @@
         <div class="view-toggle" role="tablist" aria-label="Velg varselvisning">
             <button type="button"
                     role="tab"
-                    aria-selected="@(selectedView == ForecastView.Hourly)"
+                    aria-selected="@(selectedView == ForecastView.Hourly ? "true" : "false")"
                     class="@GetViewButtonClass(ForecastView.Hourly)"
                     @onclick="() => selectedView = ForecastView.Hourly">
                 Time for time
             </button>
             <button type="button"
                     role="tab"
-                    aria-selected="@(selectedView == ForecastView.Daily)"
+                    aria-selected="@(selectedView == ForecastView.Daily ? "true" : "false")"
                     class="@GetViewButtonClass(ForecastView.Daily)"
                     @onclick="() => selectedView = ForecastView.Daily">
                 7 dager
@@ -111,30 +111,7 @@
                     <h2>Temperatur time for time</h2>
                     <span>Neste 12 timer</span>
                 </div>
-                <svg viewBox="0 0 720 260" role="img" aria-labelledby="chart-title chart-description">
-                    <title id="chart-title">Temperaturgraf</title>
-                    <desc id="chart-description">Grafen viser temperaturutviklingen time for time for valgt sted.</desc>
-
-                    @foreach (var gridLine in TemperatureChart.GridLines)
-                    {
-                        <line class="chart-grid-line" x1="48" x2="690" y1="@Svg(gridLine.Y)" y2="@Svg(gridLine.Y)" />
-                        @((MarkupString)$"<text class=\"chart-axis-label\" x=\"12\" y=\"{Svg(gridLine.Y + 5)}\">{gridLine.Label}</text>")
-                    }
-
-                    <path class="chart-line" d="@TemperatureChart.Path" />
-
-                    @foreach (var point in TemperatureChart.PointItems)
-                    {
-                        <circle class="chart-point" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="5">
-                            <title>@point.Label</title>
-                        </circle>
-                    }
-
-                    @foreach (var label in TemperatureChart.TimeLabels)
-                    {
-                        @((MarkupString)$"<text class=\"chart-time-label\" x=\"{Svg(label.X)}\" y=\"246\">{label.Label}</text>")
-                    }
-                </svg>
+                @RenderChart(TemperatureChart)
             </section>
         }
         else
@@ -142,25 +119,45 @@
             <div class="daily-list" aria-label="7-dagersvarsel">
                 @foreach (var day in DailyForecasts)
                 {
-                    <article class="daily-row">
-                        <div class="forecast-time">
-                            <time datetime="@day.Date.ToString("O")">@day.Date.ToString("dddd d. MMM")</time>
-                        </div>
-                        <span class="weather-symbol" aria-hidden="true">@((MarkupString)GetWeatherIcon(day.SymbolCode))</span>
-                        <div class="forecast-summary">
-                            <strong>@day.Summary</strong>
-                            <small>Nedbør: @FormatPrecipitation(day.PrecipitationMillimeters)</small>
-                        </div>
-                        <dl class="temperature-range">
-                            <div>
-                                <dt>Høyeste</dt>
-                                <dd>@FormatTemperature(day.MaxTemperatureC)</dd>
+                    var isExpanded = expandedDate == day.Date;
+                    <article class="daily-row @(isExpanded ? "is-expanded" : null)">
+                        <div class="daily-row-header"
+                             role="button"
+                             tabindex="0"
+                             aria-expanded="@(isExpanded ? "true" : "false")"
+                             aria-label="@($"Time for time for {day.Date.ToString("dddd d. MMMM")}")"
+                             @onclick="() => ToggleDay(day.Date)"
+                             @onkeydown="args => ToggleDayOnKey(args, day.Date)">
+                            <div class="forecast-time">
+                                <time datetime="@day.Date.ToString("O")">@day.Date.ToString("dddd d. MMM")</time>
                             </div>
-                            <div>
-                                <dt>Laveste</dt>
-                                <dd>@FormatTemperature(day.MinTemperatureC)</dd>
+                            <span class="weather-symbol" aria-hidden="true">@((MarkupString)GetWeatherIcon(day.SymbolCode))</span>
+                            <div class="forecast-summary">
+                                <strong>@day.Summary</strong>
+                                <small>Nedbør: @FormatPrecipitation(day.PrecipitationMillimeters)</small>
                             </div>
-                        </dl>
+                            <dl class="temperature-range">
+                                <div>
+                                    <dt>Høyeste</dt>
+                                    <dd>@FormatTemperature(day.MaxTemperatureC)</dd>
+                                </div>
+                                <div>
+                                    <dt>Laveste</dt>
+                                    <dd>@FormatTemperature(day.MinTemperatureC)</dd>
+                                </div>
+                            </dl>
+                            <span class="expand-chevron" aria-hidden="true">▾</span>
+                        </div>
+                        @if (isExpanded)
+                        {
+                            <div class="daily-expanded">
+                                <div class="chart-header">
+                                    <h3>Time for time</h3>
+                                    <span>@day.Date.ToString("dddd d. MMMM")</span>
+                                </div>
+                                @RenderChart(BuildDayChart(day.Date))
+                            </div>
+                        }
                     </article>
                 }
             </div>
@@ -178,6 +175,7 @@
     private bool isLoading = true;
     private bool isSearching;
     private ForecastView selectedView = ForecastView.Hourly;
+    private DateOnly? expandedDate;
 
     protected override void OnInitialized()
     {
@@ -310,50 +308,92 @@
             return BuildTemperatureChart(
                 forecast?.Forecasts
                     .Where(period => period.Time >= now && period.Time <= end)
-                    .ToArray() ?? []);
+                    .ToArray() ?? [],
+                maxPoints: 12);
         }
     }
+
+    // Bygger en time-for-time-graf for én bestemt dag. Dag 1–2 har timesoppløsning,
+    // dag 3 og utover har 6-timersteg, så grafen viser de punktene som finnes for dagen.
+    private TemperatureChartData BuildDayChart(DateOnly date) =>
+        BuildTemperatureChart(
+            forecast?.Forecasts
+                .Where(period => DateOnly.FromDateTime(period.Time.ToLocalTime().Date) == date)
+                .ToArray() ?? [],
+            maxPoints: 24);
 
     private string GetViewButtonClass(ForecastView view) =>
         selectedView == view ? "active" : string.Empty;
 
-    private static string GetWeatherIcon(string? symbolCode)
+    // Trekkspill: én dag av gangen er utfoldet. Klikk på samme dag igjen lukker den.
+    private void ToggleDay(DateOnly date) =>
+        expandedDate = expandedDate == date ? null : date;
+
+    // Lar raden foldes ut/inn med tastatur (Enter eller mellomrom), slik at den
+    // fungerer som en knapp for tastatur- og skjermleserbrukere.
+    private void ToggleDayOnKey(KeyboardEventArgs args, DateOnly date)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+        {
+            ToggleDay(date);
+        }
+    }
+
+    // Full 64x64-ikon til 7-dagerslista.
+    private static string GetWeatherIcon(string? symbolCode) =>
+        $"""<svg width="64" height="64" viewBox="0 0 64 64" fill="none">{GetWeatherIconBody(symbolCode)}</svg>""";
+
+    // Lite, posisjonert ikon til grafen. Sentreres på (centerX, centerY) med gitt størrelse.
+    // Koordinatene formateres med punktum (InvariantCulture) slik at norsk locale ikke gir komma.
+    private static string GetWeatherIconSvg(string? symbolCode, double centerX, double centerY, double size)
+    {
+        var half = size / 2d;
+        var x = (centerX - half).ToString("0.#", CultureInfo.InvariantCulture);
+        var y = (centerY - half).ToString("0.#", CultureInfo.InvariantCulture);
+        var dimension = size.ToString("0.#", CultureInfo.InvariantCulture);
+        return $"""<svg x="{x}" y="{y}" width="{dimension}" height="{dimension}" viewBox="0 0 64 64" fill="none">{GetWeatherIconBody(symbolCode)}</svg>""";
+    }
+
+    private static string GetWeatherIconBody(string? symbolCode)
     {
         var normalizedCode = symbolCode?.Split('_', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
 
         if (normalizedCode.Contains("thunder", StringComparison.OrdinalIgnoreCase))
         {
-            return ThunderIcon;
+            return ThunderIconBody;
         }
 
         if (normalizedCode.Contains("rain", StringComparison.OrdinalIgnoreCase) ||
             normalizedCode.Contains("sleet", StringComparison.OrdinalIgnoreCase))
         {
-            return RainIcon;
+            return RainIconBody;
         }
 
         if (normalizedCode.Contains("snow", StringComparison.OrdinalIgnoreCase))
         {
-            return CloudIcon;
+            return CloudIconBody;
         }
 
-        if (normalizedCode.Contains("partlycloudy", StringComparison.OrdinalIgnoreCase) ||
-            normalizedCode.Contains("fair", StringComparison.OrdinalIgnoreCase))
+        if (normalizedCode.Contains("partlycloudy", StringComparison.OrdinalIgnoreCase))
         {
-            return SunCloudIcon;
+            return SunCloudIconBody;
+        }
+
+        if (normalizedCode.Contains("fair", StringComparison.OrdinalIgnoreCase))
+        {
+            return FairIconBody;
         }
 
         if (normalizedCode.Contains("cloud", StringComparison.OrdinalIgnoreCase) ||
             normalizedCode.Contains("fog", StringComparison.OrdinalIgnoreCase))
         {
-            return CloudIcon;
+            return CloudIconBody;
         }
 
-        return SunIcon;
+        return SunIconBody;
     }
 
-    private const string SunIcon = """
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+    private const string SunIconBody = """
           <circle cx="32" cy="32" r="12" fill="#FDB813"/>
           <g stroke="#FDB813" stroke-width="4" stroke-linecap="round">
             <path d="M32 6v8"/>
@@ -365,18 +405,14 @@
             <path d="M50.4 13.6l-5.6 5.6"/>
             <path d="M19.2 44.8l-5.6 5.6"/>
           </g>
-        </svg>
         """;
 
-    private const string CloudIcon = """
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+    private const string CloudIconBody = """
           <path d="M22 46h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 16 31a8 8 0 0 0 6 15Z"
                 fill="#B8C7D9"/>
-        </svg>
         """;
 
-    private const string RainIcon = """
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+    private const string RainIconBody = """
           <path d="M22 34h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 16 19a8 8 0 0 0 6 15Z"
                 fill="#B8C7D9"/>
           <g stroke="#3BA7FF" stroke-width="4" stroke-linecap="round">
@@ -384,20 +420,16 @@
             <path d="M34 44l-4 8"/>
             <path d="M46 44l-4 8"/>
           </g>
-        </svg>
         """;
 
-    private const string ThunderIcon = """
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+    private const string ThunderIconBody = """
           <path d="M22 34h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 16 19a8 8 0 0 0 6 15Z"
                 fill="#8FA1B5"/>
           <path d="M34 34l-8 14h8l-4 12 14-18h-9l5-8h-6Z"
                 fill="#FFD43B"/>
-        </svg>
         """;
 
-    private const string SunCloudIcon = """
-        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+    private const string SunCloudIconBody = """
           <circle cx="24" cy="24" r="10" fill="#FDB813"/>
           <g stroke="#FDB813" stroke-width="3" stroke-linecap="round">
             <path d="M24 6v6"/>
@@ -405,13 +437,27 @@
             <path d="M6 24h6"/>
             <path d="M36 24h6"/>
             <path d="M11.3 11.3l4.2 4.2"/>
+            <path d="M36.7 11.3l-4.2 4.2"/>
+            <path d="M11.3 36.7l4.2 -4.2"/>
           </g>
           <path d="M24 48h26a10 10 0 0 0 0-20h-1.2A16 16 0 0 0 18 33a8 8 0 0 0 6 15Z"
                 fill="#B8C7D9"/>
-        </svg>
         """;
 
-    private static TemperatureChartData BuildTemperatureChart(IReadOnlyList<WeatherForecastPeriod> periods)
+    private const string FairIconBody = """
+          <circle cx="30" cy="26" r="12" fill="#FDB813"/>
+          <g stroke="#FDB813" stroke-width="3" stroke-linecap="round">
+            <path d="M30 4v7"/>
+            <path d="M6 26h7"/>
+            <path d="M47 26h7"/>
+            <path d="M17.3 13.3l4.2 4.2"/>
+            <path d="M42.7 13.3l-4.2 4.2"/>
+          </g>
+          <path d="M28 48h18a7 7 0 0 0 0-14h-0.9A12 12 0 0 0 22 38a6 6 0 0 0 6 10Z"
+                fill="#B8C7D9"/>
+        """;
+
+    private static TemperatureChartData BuildTemperatureChart(IReadOnlyList<WeatherForecastPeriod> periods, int maxPoints)
     {
         var values = periods
             .Where(period => period.TemperatureC is not null)
@@ -419,9 +465,10 @@
             .Select(period => new
             {
                 period.Time,
-                Temperature = period.TemperatureC!.Value
+                Temperature = period.TemperatureC!.Value,
+                period.SymbolCode
             })
-            .Take(12)
+            .Take(maxPoints)
             .ToArray();
 
         if (values.Length == 0)
@@ -431,7 +478,8 @@
 
         const double left = 48;
         const double right = 690;
-        const double top = 24;
+        // Ekstra luft på toppen gir plass til værsymbolet som tegnes over hvert punkt.
+        const double top = 44;
         const double bottom = 214;
         var min = Math.Floor(values.Min(item => item.Temperature));
         var max = Math.Ceiling(values.Max(item => item.Temperature));
@@ -447,7 +495,8 @@
             return new TemperatureChartPoint(
                 x,
                 y,
-                $"{item.Time.ToLocalTime():dddd HH:mm}: {item.Temperature:0.#} °C");
+                $"{item.Time.ToLocalTime():dddd HH:mm}: {item.Temperature:0.#} °C",
+                item.SymbolCode);
         }).ToArray();
 
         var gridLines = Enumerable.Range(0, 4)
@@ -511,6 +560,34 @@
     private static string Svg(double value) =>
         value.ToString("0.#", CultureInfo.InvariantCulture);
 
+    // Felles tegning av temperaturgrafen. Brukes både i «Time for time»-visningen og når
+    // en dag foldes ut i 7-dagersvarselet. Et lite værsymbol tegnes over hvert datapunkt.
+    private RenderFragment<TemperatureChartData> RenderChart => chart =>
+    @<svg viewBox="0 0 720 260" role="img" aria-label="Temperaturgraf time for time">
+        <title>Temperaturgraf time for time</title>
+
+        @foreach (var gridLine in chart.GridLines)
+        {
+            <line class="chart-grid-line" x1="48" x2="690" y1="@Svg(gridLine.Y)" y2="@Svg(gridLine.Y)" />
+            @((MarkupString)$"<text class=\"chart-axis-label\" x=\"12\" y=\"{Svg(gridLine.Y + 5)}\">{gridLine.Label}</text>")
+        }
+
+        <path class="chart-line" d="@chart.Path" />
+
+        @foreach (var point in chart.PointItems)
+        {
+            @((MarkupString)GetWeatherIconSvg(point.SymbolCode, point.X, Math.Max(12, point.Y - 20), 20))
+            <circle class="chart-point" cx="@Svg(point.X)" cy="@Svg(point.Y)" r="5">
+                <title>@point.Label</title>
+            </circle>
+        }
+
+        @foreach (var label in chart.TimeLabels)
+        {
+            @((MarkupString)$"<text class=\"chart-time-label\" x=\"{Svg(label.X)}\" y=\"246\">{label.Label}</text>")
+        }
+    </svg>;
+
     public void Dispose()
     {
         cancellationTokenSource.Cancel();
@@ -537,7 +614,7 @@
         IReadOnlyList<TemperatureChartGridLine> GridLines,
         IReadOnlyList<TemperatureChartTimeLabel> TimeLabels);
 
-    private sealed record TemperatureChartPoint(double X, double Y, string Label);
+    private sealed record TemperatureChartPoint(double X, double Y, string Label, string? SymbolCode);
 
     private sealed record TemperatureChartGridLine(double Y, string Label);
 

@@ -277,7 +277,8 @@ a:focus-visible {
     justify-content: space-between;
 }
 
-.chart-header h2 {
+.chart-header h2,
+.chart-header h3 {
     font-size: 1.1rem;
     font-weight: 850;
     margin: 0;
@@ -288,7 +289,10 @@ a:focus-visible {
     font-weight: 700;
 }
 
-.temperature-chart svg {
+/* Kun selve grafen skal fylle bredden. Direkte-barn-velgeren (>) hindrer at de
+   nestede ikon-SVG-ene (værsymbolene i grafen) blir strukket til full bredde. */
+.temperature-chart > svg,
+.daily-expanded > svg {
     display: block;
     height: auto;
     width: 100%;
@@ -325,8 +329,7 @@ a:focus-visible {
     stroke-width: 3;
 }
 
-.forecast-row,
-.daily-row {
+.forecast-row {
     align-items: center;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -339,8 +342,50 @@ a:focus-visible {
     padding: 0.85rem 1rem;
 }
 
+/* Dagskortet er nå en beholder: en klikkbar header + et utfellbart grafpanel. */
 .daily-row {
-    grid-template-columns: minmax(9rem, 0.9fr) 3rem minmax(0, 1.2fr) minmax(12rem, auto);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+    overflow: hidden;
+}
+
+.daily-row-header {
+    align-items: center;
+    cursor: pointer;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(9rem, 0.9fr) 3rem minmax(0, 1.2fr) minmax(12rem, auto) 1.25rem;
+    min-height: 4.75rem;
+    padding: 0.85rem 1rem;
+}
+
+.daily-row-header:hover {
+    background: var(--surface-strong);
+}
+
+.daily-row-header:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: -3px;
+}
+
+.expand-chevron {
+    color: var(--muted);
+    font-size: 0.9rem;
+    justify-self: center;
+    transition: transform 0.15s ease;
+}
+
+.daily-row.is-expanded .expand-chevron {
+    transform: rotate(180deg);
+}
+
+.daily-expanded {
+    border-top: 1px solid var(--border);
+    display: grid;
+    gap: 0.75rem;
+    padding: 1rem;
 }
 
 .forecast-time time {
@@ -452,14 +497,42 @@ a:focus-visible {
         gap: 0.15rem;
     }
 
-    .forecast-row,
-    .daily-row {
+    .forecast-row {
         grid-template-columns: 3rem minmax(0, 1fr);
     }
 
-    .forecast-time,
-    .forecast-value,
-    .temperature-range {
+    .daily-row-header {
+        grid-template-columns: 3rem minmax(0, 1fr) auto;
+        grid-template-areas:
+            "time time chevron"
+            "symbol summary summary"
+            "temp temp temp";
+    }
+
+    .daily-row-header .forecast-time {
+        grid-area: time;
+    }
+
+    .daily-row-header .weather-symbol {
+        grid-area: symbol;
+    }
+
+    .daily-row-header .forecast-summary {
+        grid-area: summary;
+    }
+
+    .daily-row-header .temperature-range {
+        grid-area: temp;
+    }
+
+    .daily-row-header .expand-chevron {
+        align-self: center;
+        grid-area: chevron;
+        justify-self: end;
+    }
+
+    .forecast-row .forecast-time,
+    .forecast-row .forecast-value {
         grid-column: 1 / -1;
     }
 
