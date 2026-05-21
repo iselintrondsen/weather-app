@@ -478,6 +478,15 @@ a:focus-visible {
 }
 
 @media (max-width: 720px) {
+    .content {
+        padding-bottom: 1.5rem;
+        padding-top: 1rem;
+    }
+
+    .weather-shell {
+        gap: 1rem;
+    }
+
     .weather-header,
     .current-weather {
         align-items: stretch;
@@ -485,18 +494,66 @@ a:focus-visible {
 
     .weather-header {
         display: grid;
+        gap: 0.85rem;
     }
 
-    .current-weather {
-        grid-template-columns: 1fr;
+    .weather-header h1 {
+        font-size: clamp(2.25rem, 13vw, 3.25rem);
     }
 
-    .current-weather-condition {
-        justify-self: start;
+    .location-search {
+        padding: 0.85rem;
+        width: 100%;
     }
 
     .search-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .search-row .btn {
+        min-width: 4.5rem;
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    .current-weather {
+        gap: 1rem;
         grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .current-weather-condition {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+        justify-self: start;
+        text-align: left;
+    }
+
+    .current-weather-symbol {
+        height: 4rem;
+        width: 4rem;
+    }
+
+    .current-weather dl {
+        border-top: 1px solid #dbe4ee;
+        gap: 0;
+        padding-top: 0.25rem;
+    }
+
+    .current-weather dl div {
+        align-items: flex-start;
+        padding: 0.65rem 0;
+    }
+
+    .current-weather dd {
+        max-width: 58%;
+    }
+
+    .view-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
     }
 
     .chart-header {
@@ -504,12 +561,25 @@ a:focus-visible {
         gap: 0.15rem;
     }
 
+    .temperature-chart,
+    .daily-expanded {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .temperature-chart > svg,
+    .daily-expanded > svg {
+        min-width: 42rem;
+    }
+
     .daily-row-header {
+        gap: 0.75rem;
         grid-template-columns: 3rem minmax(0, 1fr) auto;
         grid-template-areas:
             "time time chevron"
             "symbol summary summary"
             "temp temp temp";
+        padding: 0.9rem;
     }
 
     .daily-row-header .forecast-time {
@@ -526,6 +596,12 @@ a:focus-visible {
 
     .daily-row-header .temperature-range {
         grid-area: temp;
+    }
+
+    .temperature-range {
+        background: var(--surface-strong);
+        border-radius: 8px;
+        padding: 0.75rem;
     }
 
     .daily-row-header .expand-chevron {
