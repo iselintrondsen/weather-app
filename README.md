@@ -1,9 +1,10 @@
 # Værvarsel
 
-En liten værvarsel-app for norske steder. Du søker etter et sted, og appen viser
+En lokal single-page værapp for norske steder. Du søker etter et sted, og appen viser
 nåværende vær, en temperaturgraf time for time og et varsel for de neste 7 dagene.
-Værdataene kommer fra Meteorologisk institutt (Yr), og stedsøket går mot
-OpenStreetMap (Nominatim).
+Webapplikasjonen henter alle data via et lokalt ASP.NET Core Web API. Selve
+værvarselet kommer fra Yr-grunnlaget til Meteorologisk institutt via `api.met.no`,
+mens stedsøket går mot OpenStreetMap (Nominatim).
 
 ## Funksjoner
 
@@ -21,6 +22,21 @@ OpenStreetMap (Nominatim).
 - **WeatherApi** – ASP.NET Core Minimal API (backend / proxy mot eksterne tjenester)
 - **WeatherApp** – Blazor WebAssembly (frontend)
 - **WeatherShared** – delt klassebibliotek med felles datamodeller
+
+## Samsvar med oppgaven
+
+- **Single-page webapplikasjon:** `WeatherApp` er en Blazor WebAssembly-app med én
+  hovedside for søk og værvisning.
+- **Valgt lokasjon:** Brukeren søker etter et sted, og beste treff vises automatisk.
+  Alternative treff kan velges manuelt.
+- **Web API:** `WeatherApi` er et ASP.NET Core Minimal API som frontend-en bruker for
+  både stedsøk og værdata.
+- **Yr-værdata:** API-et henter værvarsel fra `api.met.no`, som er Meteorologisk
+  institutt sitt offisielle API for værdataene som brukes av Yr.
+- **Mulig å bytte datakilde:** Værintegrasjonen ligger bak `IWeatherProvider`.
+  Frontend-en kjenner bare til `WeatherApi` og påvirkes ikke dersom backend bytter til
+  en annen værleverandør.
+- **Lokal kjøring:** Backend og frontend kjøres lokalt på hver sin port.
 
 ## Forutsetninger
 
@@ -83,7 +99,7 @@ WeatherSolution.slnx          Løsningsfil (samler de tre prosjektene)
 │
 ├── WeatherApi/               Backend – ASP.NET Core Minimal API
 │   ├── Endpoints/            Definisjon av HTTP-endepunktene
-│   ├── Services/             Yr (vær) og Nominatim (stedsøk)
+│   ├── Services/             Meteorologisk institutt/Yr (vær) og Nominatim (stedsøk)
 │   └── Program.cs            Oppsett av tjenester, CORS og HttpClient
 │
 ├── WeatherApp/               Frontend – Blazor WebAssembly
@@ -107,3 +123,15 @@ og designvalgene.
 Begge tjenestene krever en identifiserbar `User-Agent`. Denne settes i
 `WeatherApi/Program.cs` og bør tilpasses før eventuell produksjonsbruk, i tråd med
 tjenestenes vilkår for bruk.
+
+## Bytte værleverandør
+
+For å bruke en annen værtjeneste uten å endre frontend-en kan man:
+
+1. Lage en ny klasse i `WeatherApi/Services` som implementerer `IWeatherProvider`.
+2. Mappe svaret fra den nye tjenesten til `WeatherForecastResponse` og
+   `WeatherForecastPeriod`.
+3. Bytte registreringen i `WeatherApi/Program.cs` fra dagens leverandør til den nye.
+
+Så lenge API-endepunktet returnerer samme delte modeller, fortsetter Blazor-appen å
+fungere uten endringer.

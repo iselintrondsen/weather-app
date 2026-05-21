@@ -14,7 +14,8 @@ Løsningen består av tre prosjekter:
 | `WeatherShared`   | Klassebibliotek (.NET)      | Felles datamodeller som deles av frontend og backend.        |
 
 Frontend snakker aldri direkte med de eksterne tjenestene. All kommunikasjon går via
-`WeatherApi`, som kapsler inn hvilke leverandører som faktisk brukes.
+`WeatherApi`, som kapsler inn hvilke leverandører som faktisk brukes. Det betyr at en
+annen værleverandør kan kobles på i backend uten at Blazor-appen må endres.
 
 ## Komponent- og dataflyt
 
@@ -57,7 +58,7 @@ sequenceDiagram
     participant App as WeatherApp
     participant Api as WeatherApi
     participant OSM as Nominatim
-    participant MET as Yr (api.met.no)
+    participant MET as Meteorologisk institutt / Yr
 
     Bruker->>App: Skriver «Oslo» og søker
     App->>Api: GET /api/locations/search?query=Oslo
@@ -95,7 +96,8 @@ Selve integrasjonene ligger bak grensesnitt, slik at endepunktene ikke er bundet
 konkret leverandør:
 
 - `IWeatherProvider` → `YrWeatherProvider` henter værvarsel fra `api.met.no`
-  (Locationforecast 2.0, compact) og oversetter Yr sine symbolkoder til norske
+  (Locationforecast 2.0, compact). Dette er Meteorologisk institutt sitt offisielle
+  API for værdataene som brukes av Yr. Leverandøren oversetter symbolkoder til norske
   beskrivelser (f.eks. `clearsky` → «Klarvær»).
 - `ILocationSearchProvider` → `NominatimLocationSearchProvider` søker etter steder via
   Nominatim, begrenset til norske treff (`countrycodes=no`).
@@ -118,8 +120,9 @@ Det gjør at appen ikke er bundet til en bestemt værleverandør, holder ekstern
 styre hvilke klienter som slipper til via CORS.
 
 **Grensesnitt for leverandørene.** `IWeatherProvider` og `ILocationSearchProvider`
-gjør at en datakilde kan byttes ut uten å endre endepunktene. Vil man for eksempel
-bruke en annen værtjeneste, lager man en ny implementasjon og registrerer den i
+gjør at en datakilde kan byttes ut uten å endre frontend-en. Vil man for eksempel
+bruke en annen værtjeneste, lager man en ny implementasjon av `IWeatherProvider`,
+mapper svaret til de delte modellene i `WeatherShared`, og registrerer den i
 `Program.cs`.
 
 **Delt modellbibliotek.** `WeatherShared` fjerner duplisering av datamodellene. JSON-en
