@@ -280,10 +280,24 @@
             .Select(group =>
             {
                 var periods = group.ToArray();
-                var summary = periods
+
+                // Velg dagens dominerende værtype ÉN gang, slik at ikon og tekst alltid
+                // hører sammen. Tidligere ble teksten (Summary) og ikon-koden (SymbolCode)
+                // valgt i hver sin gruppering: Summary slår sammen dag/natt-varianter
+                // (clearsky_day + clearsky_night → «Klarvær»), mens SymbolCode teller dem
+                // hver for seg. Det kunne gjøre at en «Klarvær»-dag fikk lettskyet-ikonet.
+                var dominant = periods
                     .GroupBy(item => item.Summary)
-                    .OrderByDescending(item => item.Count())
-                    .FirstOrDefault()?.Key ?? "Ukjent værtype";
+                    .OrderByDescending(weatherType => weatherType.Count())
+                    .ThenBy(weatherType => weatherType.Key, StringComparer.Ordinal)
+                    .First();
+
+                var summary = dominant.Key;
+                var symbolCode = dominant
+                    .GroupBy(item => item.SymbolCode)
+                    .OrderByDescending(symbol => symbol.Count())
+                    .ThenBy(symbol => symbol.Key, StringComparer.Ordinal)
+                    .First().Key;
 
                 return new DailyForecast(
                     DateOnly.FromDateTime(group.Key),
@@ -291,10 +305,7 @@
                     periods.Where(item => item.TemperatureC is not null).Max(item => item.TemperatureC),
                     periods.Sum(item => item.PrecipitationMillimeters ?? 0),
                     summary,
-                    periods
-                        .GroupBy(item => item.SymbolCode)
-                        .OrderByDescending(item => item.Count())
-                        .FirstOrDefault()?.Key);
+                    symbolCode);
             })
             .ToArray() ?? [];
 
