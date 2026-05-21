@@ -511,7 +511,6 @@
 
         var timeLabels = values
             .Select((item, index) => new { item.Time, index })
-            .Where(item => item.index == 0 || item.index == values.Length - 1 || item.index % 6 == 0)
             .Select(item =>
             {
                 var x = values.Length == 1
