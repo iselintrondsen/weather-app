@@ -109,6 +109,13 @@ a:focus-visible {
     text-transform: uppercase;
 }
 
+.coordinates {
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0;
+}
+
 .location-search {
     background: var(--surface);
     border: 1px solid var(--border);

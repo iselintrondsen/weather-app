@@ -21,9 +21,11 @@
                        class="form-control"
                        type="search"
                        placeholder="Skriv for eksempel Oslo"
+                       autocomplete="off"
+                       aria-autocomplete="list"
                        aria-describedby="location-help"
-                       @bind="locationQuery"
-                       @bind:event="oninput" />
+                       value="@locationQuery"
+                       @oninput="HandleLocationInputAsync" />
                 <button class="btn btn-primary" type="button" @onclick="SearchLocationsAsync" disabled="@isSearching">
                     Søk
                 </button>
@@ -38,8 +40,8 @@
     }
     else if (alternativeResults.Count > 0)
     {
-        <div class="search-results" aria-label="Søkeresultater">
-            <p>Andre mulige treff</p>
+        <div class="search-results" aria-label="Stedsforslag">
+            <p>Stedsforslag</p>
             @foreach (var location in alternativeResults)
             {
                 <button class="location-result" type="button" @onclick="() => SelectLocationAsync(location)">
@@ -64,6 +66,7 @@
         <div class="current-weather">
             <div>
                 <p class="eyebrow">@forecast.LocationName</p>
+                <p class="coordinates">@FormatCoordinates(forecast.Latitude, forecast.Longitude)</p>
                 <p class="temperature">@FormatTemperature(current?.TemperatureC)</p>
             </div>
             <div class="current-weather-condition">
@@ -181,6 +184,7 @@
     private bool isSearching;
     private ForecastView selectedView = ForecastView.Hourly;
     private DateOnly? expandedDate;
+    private int locationSearchVersion;
 
     protected override void OnInitialized()
     {
@@ -208,7 +212,10 @@
 
     private async Task SearchLocationsAsync()
     {
-        if (locationQuery.Trim().Length < 2)
+        var query = locationQuery.Trim();
+        locationSearchVersion++;
+
+        if (query.Length < 2)
         {
             alternativeResults = [];
             return;
@@ -219,13 +226,13 @@
 
         try
         {
-            var results = await WeatherApiClient.SearchLocationsAsync(locationQuery, cancellationTokenSource.Token);
+            var results = await WeatherApiClient.SearchLocationsAsync(query, cancellationTokenSource.Token);
 
             if (results.FirstOrDefault() is not { } bestMatch)
             {
                 alternativeResults = [];
                 forecast = null;
-                errorMessage = $"Fant ingen norske steder for \"{locationQuery}\".";
+                errorMessage = $"Fant ingen norske steder for \"{query}\".";
                 return;
             }
 
@@ -243,8 +250,64 @@
         }
     }
 
+    private async Task HandleLocationInputAsync(ChangeEventArgs args)
+    {
+        locationQuery = args.Value?.ToString() ?? string.Empty;
+        var query = locationQuery.Trim();
+        var searchVersion = ++locationSearchVersion;
+        errorMessage = null;
+
+        if (query.Length < 2)
+        {
+            alternativeResults = [];
+            isSearching = false;
+            return;
+        }
+
+        isSearching = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Task.Delay(300, cancellationTokenSource.Token);
+
+            if (searchVersion != locationSearchVersion)
+            {
+                return;
+            }
+
+            var results = await WeatherApiClient.SearchLocationsAsync(query, cancellationTokenSource.Token);
+
+            if (searchVersion == locationSearchVersion)
+            {
+                alternativeResults = results;
+            }
+        }
+        catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+        {
+            // Komponenten er på vei bort, så resultatet skal ikke vises.
+        }
+        catch (Exception ex)
+        {
+            if (searchVersion == locationSearchVersion)
+            {
+                alternativeResults = [];
+                errorMessage = $"Kunne ikke hente stedsforslag. Detaljer: {ex.Message}";
+            }
+        }
+        finally
+        {
+            if (searchVersion == locationSearchVersion)
+            {
+                isSearching = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
     private async Task SelectLocationAsync(LocationOption location, bool clearAlternatives = true)
     {
+        locationSearchVersion++;
         isLoading = true;
         errorMessage = null;
 
@@ -277,6 +340,10 @@
 
     private static string FormatPrecipitation(double? value) =>
         value is null ? "-" : $"{value:0.#} mm";
+
+    private static string FormatCoordinates(double latitude, double longitude) =>
+        FormattableString.Invariant($"{latitude:0.####}, {longitude:0.####}")
+            .Replace('.', ',');
 
     private IReadOnlyList<DailyForecast> DailyForecasts =>
         forecast?.Forecasts
